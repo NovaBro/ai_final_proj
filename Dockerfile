@@ -27,5 +27,5 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     chown -R $USERNAME:$USERNAME /app
 
 COPY --chown=$USERNAME:$USERNAME . .
-
+# RUN rm -rf /app/cookies.txt && touch /app/cookies.txt && chown $USERNAME:$USERNAME /app/cookies.txt
 USER $USERNAME
