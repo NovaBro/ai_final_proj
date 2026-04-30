@@ -163,4 +163,44 @@ def get_shorter_translations(
         target_duration_s,
         len(baseline_es),
     )
-    return []
+
+    canidate_list = []
+
+    import torch
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Device: {device}")
+
+    # Summarization
+    # from transformers import pipeline
+    # summarizer = pipeline("summarization", model="facebook/bart-large-cnn", device=device)
+    # print(f"Original Text: {source_text}")
+    # summarized_text = summarizer(source_text, max_length=45, min_length=0, do_sample=False)
+    # source_text = summarized_text['summary_text']
+    # print(f"Summarized Text: {source_text}")
+
+    # Translation
+    from transformers import MarianMTModel, MarianTokenizer
+    model_name = "Helsinki-NLP/opus-mt-tc-big-en-es"
+    tokenizer = MarianTokenizer.from_pretrained(model_name)
+    model = MarianMTModel.from_pretrained(model_name).to(device)
+    inputs = tokenizer(source_text, return_tensors="pt", padding=True)
+    inputs = {k: v.to(device) for k, v in inputs.items()}
+    translated = model.generate(**inputs)
+
+    for t in translated:
+        translation_result = tokenizer.decode(t, skip_special_tokens=True)
+        print(f"translation_result: {translation_result}")
+        canidate =  TranslationCandidate(translation_result,len(translation_result), 'TODO')
+        canidate_list.append(canidate)
+
+    
+    import torch
+    from transformers import pipeline
+
+    data_result = pipeline("translation_en_to_de", model="Helsinki-NLP/opus-mt-en-de", dtype=torch.float16, device=device)
+    pipeline("Hello, how are you?")
+
+
+    print(canidate_list)
+    return canidate_list
+    # return []
