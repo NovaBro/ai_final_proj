@@ -26,6 +26,12 @@ def diarize_audio(audio_path: str, hf_token: str | None = None) -> list[dict]:
         return []
 
     try:
+
+        # NOTE: MY EDITS, needed to run model, security risk!
+        import os
+        os.environ["TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD"] = "1"
+        os.environ["TORCH_LOAD_WEIGHTS_ONLY"] = "0"
+
         from pyannote.audio import Pipeline
     except (ImportError, TypeError):
         logger.warning("pyannote.audio not installed — returning empty diarization.")
@@ -36,7 +42,19 @@ def diarize_audio(audio_path: str, hf_token: str | None = None) -> list[dict]:
             "pyannote/speaker-diarization-3.1",
             use_auth_token=hf_token,
         )
+
+        # NOTE: MY EDITS, run faster, however, requires changing compose file, and add gpu to cpu container
+        # import torch
+        # pipeline.to(torch.device("cuda"))
+        # # NOTE: MY EDITS
+        # from huggingface_hub import enable_progress_bars, disable_progress_bars
+        # enable_progress_bars()
+
         diarization = pipeline(audio_path)
+
+        # # NOTE: MY EDITS
+        # disable_progress_bars()
+
         return [
             {"start_s": turn.start, "end_s": turn.end, "speaker": speaker}
             for turn, _, speaker in diarization.itertracks(yield_label=True)

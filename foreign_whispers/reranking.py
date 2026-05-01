@@ -190,7 +190,7 @@ def get_shorter_translations(
     for t in translated:
         translation_result = tokenizer.decode(t, skip_special_tokens=True)
         print(f"translation_result: {translation_result}")
-        canidate =  TranslationCandidate(translation_result,len(translation_result), 'TODO')
+        canidate =  TranslationCandidate(translation_result, len(translation_result), 'TODO')
         canidate_list.append(canidate)
 
     
@@ -201,6 +201,6 @@ def get_shorter_translations(
     pipeline("Hello, how are you?")
 
 
-    print(canidate_list)
+    print(f"Candidates: {canidate_list}")
     return canidate_list
     # return []

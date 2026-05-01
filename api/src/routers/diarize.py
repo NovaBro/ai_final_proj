@@ -36,14 +36,14 @@ async def diarize_endpoint(video_id: str):
 
     # Return cached result
     # TODO: UNCOMMENT, DEBUGGING
-    # if diar_path.exists():
-    #     data = json.loads(diar_path.read_text())
-    #     return DiarizeResponse(
-    #         video_id=video_id,
-    #         speakers=data.get("speakers", []),
-    #         segments=data.get("segments", []),
-    #         skipped=True,
-    #     )
+    if diar_path.exists():
+        data = json.loads(diar_path.read_text())
+        return DiarizeResponse(
+            video_id=video_id,
+            speakers=data.get("speakers", []),
+            segments=data.get("segments", []),
+            skipped=True,
+        )
 
     # ---- YOUR CODE HERE ----
     # Step 1: Extract audio from video

@@ -27,7 +27,9 @@ async def lifespan(app: FastAPI):
         try:
             import logfire
             logfire.configure(
-                write_token=settings.logfire_write_token,
+                # NOTE: MY EDITS
+                token=settings.logfire_write_token,
+                # write_token=settings.logfire_write_token,
                 service_name="foreign-whispers",
             )
             logfire.instrument_fastapi(app)
@@ -91,6 +93,8 @@ def create_app() -> FastAPI:
     app.include_router(transcribe_router)
     app.include_router(translate_router)
     app.include_router(tts_router)
+    from api.src.routers.diarize import router as diarize_router
+    app.include_router(diarize_router)
     app.include_router(stitch_router)
     from api.src.routers.eval import router as eval_router
     app.include_router(eval_router)
