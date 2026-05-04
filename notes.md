@@ -35,6 +35,6 @@ Can use the following to see what is happening in container api
 
  task 2, uv add sentence_transformers
 
- basically skiped task 3, 4 in notebook 5?
+ 
 
  

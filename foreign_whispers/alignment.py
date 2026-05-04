@@ -47,6 +47,8 @@ def _estimate_duration(text: str) -> float:
     import re
     import silabeador
 
+
+
     model = LinearRegression()
     model.coef_ = np.array([0.07759564, -0.02432792, -0.02116867, 0.00372126, 0.01143961])
     model.intercept_ = 0.5680703852016769
@@ -62,6 +64,10 @@ def _estimate_duration(text: str) -> float:
         return max(1, s)
 
     def embed_text(text):
+        # NOTE: TO handle erronous translation edge case
+        if ((text.find('#') != -1) or (len(text) == 1) or (text == '<')): 
+            return np.array([0, 0, 0, 0, 0])
+
         f1 = len(text)
         # f2 = seg['speed_factor'] # This feature not available in alignment.py
         f2 = estimate_syllables(text)
@@ -72,7 +78,8 @@ def _estimate_duration(text: str) -> float:
         # f4 = np.median(words_len)
         # f5 = np.std(words_len)
         # f6 = np.mean(words_len)
-        if text[0] == 'y':
+        print(text)
+        if text[0] in ['y', 'Y']:
             f6 = len(silabeador.syllabify(text[1:]))
         else:
             f6 = len(silabeador.syllabify(text))
@@ -263,8 +270,9 @@ def compute_segment_metrics(
         ))
     return metrics
 
-
-def global_align(
+# NOTE: Replace global_align
+# def global_align(
+def global_align_default(
     metrics:         list[SegmentMetrics],
     silence_regions: list[dict],
     max_stretch:     float = 1.4,
@@ -349,3 +357,59 @@ def global_align(
         cumulative_drift += gap_shift
 
     return aligned
+
+# NOTE: replace global_align fro downstream tasks
+# def global_align_dp(metrics, silence_regions, max_stretch=1.4, beam_width=6):
+def global_align(metrics, silence_regions, max_stretch=1.4, beam_width=6):
+    def silence_after(end):
+        for r in silence_regions:
+            if r.get("label") == "silence" and r["start_s"] >= end - 0.1:
+                return r["end_s"] - r["start_s"]
+        return 0.0
+
+    def candidates(m, gap):
+        sf = m.predicted_stretch
+        if sf <= 1.1:
+            return [AlignAction.ACCEPT]
+        if sf <= 1.4:
+            return [AlignAction.MILD_STRETCH, AlignAction.ACCEPT]
+        if sf <= 1.8:
+            return ([AlignAction.GAP_SHIFT] if gap >= m.overflow_s else []) + [AlignAction.MILD_STRETCH, AlignAction.REQUEST_SHORTER]
+        if sf <= 2.5:
+            return [AlignAction.REQUEST_SHORTER, AlignAction.MILD_STRETCH]
+        return [AlignAction.FAIL, AlignAction.REQUEST_SHORTER]
+
+    def cost(m, action, gap_shift, stretch, drift):
+        if action == AlignAction.ACCEPT: 
+            base = m.overflow_s * 0.5 + max(0, m.predicted_stretch - 1.1) * 0.5
+        elif action == AlignAction.MILD_STRETCH: 
+            base = max(0, stretch - 1) * 0.5 + max(0, m.predicted_stretch - max_stretch) * 0.5
+        elif action == AlignAction.GAP_SHIFT: 
+            base = gap_shift * 0.5
+        elif action == AlignAction.REQUEST_SHORTER: 
+            base = 0.5
+        else: 
+            base = 1
+        return base * 0.5 + drift * 0.5
+
+    beam = [(0.0, 0.0, [])]  # (total_cost, drift, segments)
+
+    for m in metrics:
+        gap = silence_after(m.source_end)
+        candidates_expanded = []
+        for total_cost, drift, segments in beam:
+            for action in candidates(m, gap):
+                gap_shift = min(m.overflow_s, gap) if action == AlignAction.GAP_SHIFT else 0.0
+                stretch   = min(m.predicted_stretch, max_stretch) if action == AlignAction.MILD_STRETCH else 1.0
+                new_drift = drift + gap_shift
+                seg = AlignedSegment(
+                    index=m.index, original_start=m.source_start, original_end=m.source_end,
+                    scheduled_start=m.source_start + drift, scheduled_end=m.source_start + drift + m.source_duration_s + gap_shift,
+                    text=m.translated_text, action=action, gap_shift_s=gap_shift, stretch_factor=stretch,
+                )
+                step = cost(m, action, gap_shift, stretch, new_drift)
+                candidates_expanded.append((total_cost + step, new_drift, segments + [seg]))
+
+        beam = sorted(candidates_expanded)[:max(1, beam_width)]
+
+    return beam[0][2] if beam else []

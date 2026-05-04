@@ -2,6 +2,7 @@
 This is just an overview of major code changes made. 
 Many small changes as requested in the notebook files are made, but those code are not copied here for the sake of brevity. 
 
+GitRepo: https://github.com/NovaBro/AI_Course/tree/main/assignments/final_project/ai_final_proj
 Google Drive For Videos: https://drive.google.com/drive/folders/1qx0KjJWLEjmWXRGFIlVKGupMlqXOxnku?usp=sharing
 
 ## Notebook-1 Download Integration
@@ -301,7 +302,8 @@ Task 2: The results of the reranking is dependent on lamb, the hyperparameter to
 
 Task 3:
 
-Unsure how to do this implementation fully, inparticular hard to apply solutions list to this problem.
+The algorithm schedules translated audio segments against a source timeline by exploring multiple alignment strategies simultaneously. For each segment, it looks at how much the translated text "stretches" beyond the original duration and picks feasible actions. Rather than committing to one action greedily, it keeps the best beam_width partial schedules alive at each step, then repeats for the next segment. After all segments are processed, it returns whichever complete schedule accumulated the lowest total cost. Implementation show in `alignment.py`
+
 
 Task 4:
 
@@ -409,6 +411,8 @@ async def tts_endpoint(
 No Changes
 
 ## OTHER NOTES:
+
+NOTE: The video with "Alysa" in the title had one sentence that had broken translation that disrupted downstream processes.
 
 NOTE: The other speaker voice wave files are copies.
 
