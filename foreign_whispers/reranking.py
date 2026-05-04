@@ -168,7 +168,7 @@ def get_shorter_translations(
 
     import torch
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Device: {device}")
+    # print(f"Device: {device}")
 
     # Summarization
     # from transformers import pipeline
@@ -185,22 +185,47 @@ def get_shorter_translations(
     model = MarianMTModel.from_pretrained(model_name).to(device)
     inputs = tokenizer(source_text, return_tensors="pt", padding=True)
     inputs = {k: v.to(device) for k, v in inputs.items()}
-    translated = model.generate(**inputs)
+    # translated = model.generate(**inputs)
 
+    # Generate multiple candidates
+    translated = model.generate(
+        **inputs,
+        do_sample=True,
+        temperature=0.9,
+        top_k=50,
+        num_return_sequences=3  
+    )
+
+    # Decode the translations
     for t in translated:
         translation_result = tokenizer.decode(t, skip_special_tokens=True)
-        print(f"translation_result: {translation_result}")
-        canidate =  TranslationCandidate(translation_result, len(translation_result), 'TODO')
+        # print(f"translation_result: {translation_result}")
+        canidate =  TranslationCandidate(translation_result, len(translation_result), 'None')
         canidate_list.append(canidate)
 
-    
-    import torch
-    from transformers import pipeline
+    # Task 2 in Notebook 5
+    from sentence_transformers import SentenceTransformer
+    import numpy as np
+    model_semantic = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+    def semantic_distance(text1, text2, model=model_semantic):
+        emb1 = model.encode([text1])[0]
+        emb2 = model.encode([text2])[0]
+        cosine_sim = np.dot(emb1, emb2) / (np.linalg.norm(emb1) * np.linalg.norm(emb2))
+        return 1 - cosine_sim
+    lamb = 0.1
+    from foreign_whispers.alignment import _estimate_duration
+    smallest_candidate_score = float('inf')
+    smallest_candidate = None
+    for candidate in canidate_list:
+        candidate_duration = _estimate_duration(candidate.text)
+        candidate_dist = semantic_distance(baseline_es, candidate.text, model=model_semantic)
+        candidate_score = (candidate_duration - target_duration_s) ** 2 + lamb * candidate_dist
+        print(f"Candidate: {candidate.text}, Score: {candidate_score}")
+        if candidate_score < smallest_candidate_score:
+            smallest_candidate_score = candidate_score
+            smallest_candidate = candidate
 
-    data_result = pipeline("translation_en_to_de", model="Helsinki-NLP/opus-mt-en-de", dtype=torch.float16, device=device)
-    pipeline("Hello, how are you?")
-
-
-    print(f"Candidates: {canidate_list}")
-    return canidate_list
+    # print(f"Candidates: {canidate_list}")
+    return [smallest_candidate]
+    # return [canidate_list[0]]
     # return []

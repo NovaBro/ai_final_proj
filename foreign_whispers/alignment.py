@@ -38,7 +38,58 @@ _SYLLABLE_RATE = 4.5  # syllables per second for Romance languages
 
 def _estimate_duration(text: str) -> float:
     """Estimate TTS duration in seconds using a syllable-rate heuristic."""
-    return _count_syllables(text) / _SYLLABLE_RATE
+    # NOTE: BASELINE: baseline achieves higher accuracy than the model below
+    # return _count_syllables(text) / _SYLLABLE_RATE
+    # return 1
+
+    from sklearn.linear_model import LinearRegression
+    import numpy as np
+    import re
+    import silabeador
+
+    model = LinearRegression()
+    model.coef_ = np.array([0.07759564, -0.02432792, -0.02116867, 0.00372126, 0.01143961])
+    model.intercept_ = 0.5680703852016769
+
+    def estimate_syllables(word: str) -> int:
+        w = re.sub(r'[^a-z]', '', word.lower())
+        if not w:
+            return 0
+        groups = re.findall(r'[aeiouy]+', w)
+        s = len(groups)
+        if w.endswith('e') and s > 1:
+            s -= 1
+        return max(1, s)
+
+    def embed_text(text):
+        f1 = len(text)
+        # f2 = seg['speed_factor'] # This feature not available in alignment.py
+        f2 = estimate_syllables(text)
+        word_list = text.split()
+        f3 = len(word_list)
+
+        # words_len = [len(x) for x in word_list]
+        # f4 = np.median(words_len)
+        # f5 = np.std(words_len)
+        # f6 = np.mean(words_len)
+        if text[0] == 'y':
+            f6 = len(silabeador.syllabify(text[1:]))
+        else:
+            f6 = len(silabeador.syllabify(text))
+        # f7 = np.max(words_len)
+        f7 = _count_syllables(text)
+        # f8 = np.min(words_len)
+
+        # vector_embed = np.array([f1, f2, f3, f4, f5, f6, f7, f8])
+        # vector_embed = np.array([f1, f2, f3, f4, f5, f6])
+        # vector_embed = np.array([f1, f2, f3, f6])
+        vector_embed = np.array([f1, f2, f3, f6, f7])
+        return vector_embed
+
+
+    return model.predict([embed_text(text)])[0]
+
+    
 
 
 @dataclasses.dataclass

@@ -106,5 +106,8 @@ class Settings(BaseSettings):
             self.database_url = self.postgres_dsn
         return self
 
+    @property
+    def speakers_dir(self) -> Path:
+        return self.base_dir / "pipeline_data" / "speakers"
 
 settings = Settings()

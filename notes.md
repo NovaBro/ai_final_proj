@@ -26,3 +26,15 @@ After all that, still dosn't show up so idc
 
 Can use the following to see what is happening in container api
  sudo docker logs -f foreign-whispers-api
+
+ Basically skipped 5.2, implemented in Task 3 of Notebook 6? No, prereq
+
+ uv add silabeador
+
+ Task 1 in notebook4, unable to move past baseline
+
+ task 2, uv add sentence_transformers
+
+ basically skiped task 3, 4 in notebook 5?
+
+ 

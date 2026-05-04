@@ -17,9 +17,17 @@ class TTSService:
         self.ui_dir = ui_dir
         self.tts_engine = tts_engine
 
-    def text_file_to_speech(self, source_path: str, output_path: str, *, alignment: bool | None = None) -> None:
+    def text_file_to_speech(self, source_path: str, output_path: str, *, alignment: bool | None = None, voice_map: dict = None) -> None:
         """Generate time-aligned TTS audio from a translated JSON transcript."""
-        tts_text_file_to_speech(source_path, output_path, self.tts_engine, alignment=alignment)
+        # Depricated old method for Task 5 in Notebook 4
+        # reference_voice = {
+        #     "defalt" : "default.wav",
+        #     "SPEAKER_00" : "SPEAKER_00.wav",
+        #     "SPEAKER_01" : "SPEAKER_01.wav",
+        #     "SPEAKER_02" : "SPEAKER_02.wav",
+        # }
+
+        tts_text_file_to_speech(source_path, output_path, self.tts_engine, alignment=alignment, reference_voice=voice_map)
 
     @staticmethod
     def title_for_video_id(video_id: str, search_dir: pathlib.Path) -> str | None:

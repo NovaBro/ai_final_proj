@@ -21,18 +21,26 @@ async def _run_in_threadpool(executor, fn, *args, **kwargs):
     return await loop.run_in_executor(executor, functools.partial(fn, *args, **kwargs))
 
 
+from foreign_whispers.voice_resolution import resolve_speaker_wav
+
+
 @router.post("/tts/{video_id}")
 async def tts_endpoint(
     video_id: str,
     request: Request,
     config: str = Query(..., pattern=r"^c-[0-9a-f]{7}$"),
     alignment: bool = Query(False),
+    speaker_wav: str = Query(None, description="Reference voice WAV path (e.g. 'es/default.wav')"),
 ):
     """Generate TTS audio for a translated transcript.
 
     *config* is an opaque directory name for caching.
     *alignment* enables temporal alignment (clamped stretch).
     """
+
+    if speaker_wav is None:
+        speaker_wav = resolve_speaker_wav(settings.speakers_dir, "es")
+
     trans_dir = settings.translations_dir
     audio_dir = settings.tts_audio_dir / config
     audio_dir.mkdir(parents=True, exist_ok=True)
@@ -57,8 +65,27 @@ async def tts_endpoint(
 
     source_path = str(trans_dir / f"{title}.json")
 
+
+    import json
+
+    # Load translated transcript to get speaker labels
+    trans_path = settings.translations_dir / f"{title}.json"
+    translated = json.loads(trans_path.read_text())
+    segments = translated.get("segments", [])
+
+    # Build speaker → voice mapping
+    # unique_speakers = sorted(
+    #     # {seg.get("speaker") or "SPEAKER_00" for seg in segments}
+    #     {seg.get("speaker") or "SPEAKER_00" for seg in segments}
+    # )
+    unique_speakers = sorted(set(seg.get("speaker", "SPEAKER_00") for seg in segments))
+    voice_map = {
+        spk: resolve_speaker_wav(settings.speakers_dir, "es", spk)
+        for spk in unique_speakers
+    }
+
     await _run_in_threadpool(
-        None, svc.text_file_to_speech, source_path, str(audio_dir), alignment=alignment
+        None, svc.text_file_to_speech, source_path, str(audio_dir), alignment=alignment, voice_map=voice_map
     )
 
     return {

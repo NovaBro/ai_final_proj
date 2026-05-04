@@ -93,7 +93,7 @@ def assign_speakers(
             seg_start = seg_copy['start']
 
             largest_overlap = 0
-            largest_speaker = None
+            largest_speaker = 'SPEAKER_00'
             for dia in diarization:
                 overlap = max(0, min(seg_end, dia['end_s']) - max(seg_start, dia['start_s']))
                 if overlap > largest_overlap:

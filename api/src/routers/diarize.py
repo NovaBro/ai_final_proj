@@ -79,12 +79,14 @@ async def diarize_endpoint(video_id: str):
     #   speakers = sorted(set(s["speaker"] for s in diar_segments))
     #
     speakers = sorted(set(s["speaker"] for s in diar_segments))
+
     # Step 4: Cache result
     #   result = {"speakers": speakers, "segments": diar_segments}
     #   diar_path.write_text(json.dumps(result))
     #
     result = {"speakers": speakers, "segments": diar_segments}
     diar_path.write_text(json.dumps(result))
+
     # Step 5: Return DiarizeResponse
     #   return DiarizeResponse(video_id=video_id, speakers=speakers, segments=diar_segments)
     #
@@ -92,6 +94,15 @@ async def diarize_endpoint(video_id: str):
     from foreign_whispers.diarization import assign_speakers
 
     transcript_path = settings.transcriptions_dir / f"{title}.json"
+    print(f"DEBUGGING: transcript_path.exists() {transcript_path.exists()}", flush=True)
+    print(f"DEBUGGING: transcript_path.exists() {transcript_path.exists()}", flush=True)
+    print(f"DEBUGGING: transcript_path {transcript_path}", flush=True)
+    print(f"DEBUGGING: diar_segments {diar_segments}", flush=True)
+    with open('TESTLOG.txt', 'a') as f:
+        f.write(f"DEBUGGING: transcript_path.exists() {transcript_path.exists()}")
+        f.write(f"DEBUGGING: transcript_path {transcript_path}")
+        f.write(f"DEBUGGING: diar_segments {diar_segments}")
+
     if transcript_path.exists():
         transcript = json.loads(transcript_path.read_text())
         labeled_segments = assign_speakers(transcript.get("segments", []), diar_segments)

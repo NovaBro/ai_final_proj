@@ -51,3 +51,43 @@ def clip_evaluation_report(
         "n_translation_retries":     n_retry,
         "total_cumulative_drift_s":  round(drift, 3),
     }
+
+
+# Caps for mapping raw timing numbers into [0, 1] (higher score = better fit).
+SCORECARD_MAE_CAP_S = 2.0
+SCORECARD_DRIFT_CAP_S = 10.0
+
+def timing_score_0_1(raw: dict, n_segments: int) -> float:
+    if n_segments <= 0:
+        return 0.0
+    mae = raw["mean_abs_duration_error_s"]
+    pct = raw["pct_severe_stretch"]
+    drift = abs(raw["total_cumulative_drift_s"])
+    n_shift = raw["n_gap_shifts"]
+    mae_s = 1.0 - min(1.0, mae / SCORECARD_MAE_CAP_S)
+    stretch_s = 1.0 - min(1.0, pct / 100.0)
+    drift_s = 1.0 - min(1.0, drift / SCORECARD_DRIFT_CAP_S)
+    shift_s = 1.0 - min(1.0, n_shift / n_segments)
+    return round(_stats.mean([mae_s, stretch_s, drift_s, shift_s]), 3)
+
+
+def dubbing_scorecard(
+    metrics: list[SegmentMetrics],
+    aligned_segments: list[AlignedSegment],
+    align_report: dict | None = None
+):
+    raw_timing = clip_evaluation_report(metrics, aligned_segments)
+    n = len(metrics)
+
+    scores = {
+        "timing": timing_score_0_1(raw_timing, n),
+    }
+
+    out = {
+        "scores": scores,
+        "raw_timing": raw_timing,
+    }
+
+    if align_report is not None:
+        out["align_report"] = align_report
+    return out

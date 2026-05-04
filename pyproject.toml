@@ -28,6 +28,8 @@ dependencies = [
     "logfire[fastapi]",
     "ipykernel>=7.2.0",
     "pyannote-audio>=3.4.0",
+    "silabeador>=1.2.2.post1",
+    "sentence-transformers>=5.4.1",
 ]
 
 [dependency-groups]
